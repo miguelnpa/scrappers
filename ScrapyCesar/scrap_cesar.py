@@ -1,75 +1,56 @@
-# Acessar o link: https://cesar.breezy.hr/
-# Verificar, dentro da classe div.class = "positions-container" ir até a classe li.class = "position transition" 
-# Pegar o a.href e o a.h2 = "Senior Data Scientista [manaus]"
-# Se o a.h2 que existirem na página forem diferentes dos a.h2 que existem no documento de texto, abrir um novo arquivo TXT 
-# Escrito "NOVOS PROCESSOS DISPONÍVEIS NO CESAR, CONFERIR!!"
-
-#### PRIMEIRA FUNÇÃO - Abrir o arquivo Validação.txt, ler o texto dentro e retornar um lista com strings dos nomes em validacao.txt
-
 from urllib.request import urlopen
+import urllib
 from bs4 import BeautifulSoup
 import os
-
-validacaoAdress = 'C:/Projetos/ScrapyCesar/validacao/validacao.txt'
-link = 'https://cesar.breezy.hr/'
-aviso = 'vaga.txt'
-
-def read_file(fileLocation):
-    trueJobList = []
-    with open(fileLocation, 'r',encoding='utf-8') as f:
-        jobList = f.read().split(',')
-        for i in jobList:
-            trueJobList.append(i.strip('\n'))
-        return trueJobList
+import sys
 
 
-#### SEGUNDA FUNÇÃO - Acessar o link https://cesar.breezy.hr/ e retornar um objeto bs
+class CesarSpider:
 
-def access_link(link):
-    html = urlopen(link)
-    bs = BeautifulSoup(html.read(), 'html.parser')
-    return bs
+    url_link = 'https://cesar.breezy.hr/'
 
+    def open_html(self):
 
+        url = urlopen(self.url_link)
+        bs = BeautifulSoup(url, 'html.parser')
+        return bs
 
+    def read_html(self):
 
-# TERCEIRA FUNÇÃO - RETORNAR A LISTA COM OS H2 DENTRO DO LINK
+        jobList = []
+        a = self.open_html().find_all('a', title='Apply')
+        for e in a:
+            title = e.find('h2').text
+            location = e.find('span').text.strip(', BR')
+            jobList.append([title, location])
+        return jobList
 
-def h2_list_return(bs):
-    h2List = []
-    find_class = bs.find_all('li', class_ = 'position transition')
-    for li_tag in find_class:
-        a_tag = li_tag.find('a')
-        if a_tag:
-            h2_tag = a_tag.find('h2')
-            if h2_tag:
-                h2List.append(h2_tag.text)
-    return h2List
+    def message_to_warning(self, message, message_lines):
+        with open('warning.txt', "w") as f:
+            f.write(message)
+            f.writelines(message_lines)
 
-# QUARTA FUNÇÃO - COMPARAR A LISTA ENCONTRADA DOS H2 COM A LISTA PRÉVIA SALVA NO COMPUTADOR
+    def send_warning(self):
+        os.system('warning.txt')
 
-def list_comparison(h2_list,file_list):
-    if h2_list == file_list:
-        return True
-    else:
-        return False
+    def run(self):
+        try:
+            message = "PROCESSOS DISPONÍVEIS NO CESAR, CONFERIR!!!" + '\n'
+            message_lines = []
+            for i in self.read_html():
+                if "estágio" in i[0].lower() and "manaus" in i[1].lower():
+                    message_lines.append(
+                        "Job Title: " + i[0] + '\n' + 'Location: ' + i[1] + '\n')
+            self.message_to_warning(message, message_lines)
+            self.send_warning()
 
-# QUINTA FUNÇÃO - ABRIR UM DOCUMENTO TXT ESCRITO "NOVOS PROCESSOS DISPONÍVEIS NO CESAR, CONFERIR!!"
+        except urllib.error.URLError as e:
+            sys.exit()
 
-def open_warning(aviso):
-    return os.system(aviso)
+        except AttributeError as e:
+            sys.exit()
 
-# SEXTA FUNÇÃO - CASO A LISTA SEJA DIFERENTE
+        except TypeError as e:
+            sys.exit()
 
-def validation_warning(list_comparison,warning):
-    if list_comparison == True:
-        return
-    elif list_comparison == False:
-        return open_warning(warning)
-    
-
-file_list = read_file(validacaoAdress)
-bs = access_link(link)  
-h2_list = h2_list_return(bs)
-comparison = list_comparison(h2_list,file_list)
-validation_comparison = validation_warning(comparison,aviso)
+CesarSpider().run()
